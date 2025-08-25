@@ -5,10 +5,13 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -16,16 +19,32 @@ class LockService: Service() {
 
     private val CHANNEL_ID = "ForegroundServiceChannel"
     private val CHANNEL_NAME = "Lock Service Channel"
-    private val SERVICE_ID = 1
+    private val SERVICE_ID = 1001
 
-    // 브로드캐스트 등록
-    // private lateinit var lockReceiver: LockReceiver
+    // 잠금화면 실행 시점 브로드캐스트 리시버 등록
+    private val lockReceiver: LockReceiver = LockReceiver()
 
     override fun onCreate() {
         super.onCreate()
         // 포그라운드 서비스 채널 생성
-        // Android O 이상에서 필요
         createNotificationChannel(this)
+
+        // 리시버 알림 필터 설정
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+        }
+
+        // 리시버 등록
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(
+                lockReceiver,
+                filter,
+                Context.RECEIVER_NOT_EXPORTED // TODO flags 찾아보기
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            registerReceiver(lockReceiver, filter)
+        }
     }
 
     override fun onStartCommand(
@@ -39,32 +58,83 @@ class LockService: Service() {
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("잠금화면 서비스")
             .setContentText("잠금 화면을 띄울 것 입니다.")
+            .setOngoing(true)
             .build()
 
+        // 34버전부터는 서비스 타입 지정 필요
+        val foregroundServiceType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            } else {
+                0
+            }
+
         // 포그라운드 서비스로 시작
-        startForeground(SERVICE_ID, notification)
+        ServiceCompat.startForeground(
+            this,
+            SERVICE_ID,
+            notification,
+            foregroundServiceType
+        )
+
+        // TODO test
+        mThread?.start()
 
         return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? {
-        TODO("Not yet implemented")
+        return null
     }
 
     private fun createNotificationChannel(context: Context) {
+        // Android O 이상에서 필요
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val serviceChannel = NotificationChannel(
                 CHANNEL_ID,
                 CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_LOW // 보통 서비스는 낮은 중요도로 설정
+                // 서비스 중요도, 비교해보기
+                NotificationManager.IMPORTANCE_HIGH
             )
 
             // 서비스 채널을 생성하고 알림 매니저에 등록
-            context.getSystemService(NotificationManager::class.java).apply {
-                createNotificationChannel(serviceChannel)
-            }
+            getSystemService(NotificationManager::class.java)
+                ?.createNotificationChannel(serviceChannel)
 
         }
+    }
+
+    // TODO test
+    private var mThread: Thread? = object : Thread("My Thread") {
+        override fun run() {
+            super.run()
+            var i = 0
+            while (true) {
+                i += 1
+                Log.d("Service Tread", "count : " + i)
+
+                try {
+                    sleep(1000)
+                } catch (e: InterruptedException) {
+                    currentThread().interrupt()
+                    break
+                }
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // 서비스가 종료될 때 브로드캐스트 리시버 해제
+        unregisterReceiver(lockReceiver)
+
+        // test
+        if (mThread != null){
+            mThread?.interrupt();
+            mThread = null;
+        }
+
+        // TODO
+        //stopSelf()
     }
 
 }
