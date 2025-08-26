@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -98,6 +99,7 @@ fun Greeting(
 
         NotificationPermissionButton()
         OverlayPermissionCard()
+        IgnoreBatteryOptimizationButton()
     }
 }
 
@@ -197,5 +199,48 @@ fun OverlayPermissionCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun IgnoreBatteryOptimizationButton() {
+    val context = LocalContext.current
+    val pkg = context.packageName
+    val pm = remember { context.getSystemService(PowerManager::class.java) }
+
+    // 설정 다이얼로그 실행 런처
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        // 돌아온 뒤 상태 재확인 (필요하면 UI 갱신/토스트)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val allowed = pm.isIgnoringBatteryOptimizations(pkg)
+            Toast.makeText(
+                context,
+                if (allowed) "배터리 최적화 제외가 허용되었습니다." else "요청이 거부되었거나 유지되지 않았습니다.",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    Button(
+        onClick = {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+                Toast.makeText(context, "해당 기능이 필요 없는 버전입니다.", Toast.LENGTH_SHORT).show()
+                return@Button
+            }
+
+            val allowed = pm.isIgnoringBatteryOptimizations(pkg)
+            if (allowed) {
+                Toast.makeText(context, "이미 최적화 제외 상태입니다.", Toast.LENGTH_SHORT).show()
+            } else {
+                launcher.launch(
+                    Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+                        .setData(Uri.parse("package:$pkg"))
+                )
+            }
+        }
+    ) {
+        Text("배터리 최적화 제외 요청")
     }
 }
