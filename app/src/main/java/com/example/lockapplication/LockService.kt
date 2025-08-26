@@ -48,6 +48,10 @@ class LockService: Service() {
             @Suppress("DEPRECATION")
             registerReceiver(lockReceiver, filter)
         }
+
+
+        // TODO test
+        mThread?.start()
     }
 
     override fun onStartCommand(
@@ -79,8 +83,6 @@ class LockService: Service() {
             foregroundServiceType
         )
 
-        // TODO test
-        mThread?.start()
 
         return START_STICKY
     }
@@ -126,7 +128,6 @@ class LockService: Service() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
         // 서비스가 종료될 때 브로드캐스트 리시버 해제
         unregisterReceiver(lockReceiver)
 
@@ -136,8 +137,8 @@ class LockService: Service() {
             mThread = null;
         }
 
-        // TODO
-        //stopSelf()
+        super.onDestroy()
     }
+}
 
 }
