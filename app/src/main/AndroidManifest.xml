@@ -26,10 +26,6 @@
             android:foregroundServiceType="specialUse" />
 
         <receiver
-            android:name=".LockReceiver"
-            android:exported="false" />
-
-        <receiver
             android:name=".BootReceiver"
             android:exported="false"
             android:directBootAware="true">
