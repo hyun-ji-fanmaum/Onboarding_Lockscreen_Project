@@ -35,11 +35,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.lockapplication.ui.theme.LockApplicationTheme
 import java.util.concurrent.TimeUnit
+import androidx.core.net.toUri
 
 
 class MainActivity : ComponentActivity() {
@@ -58,11 +60,10 @@ class MainActivity : ComponentActivity() {
                     Greeting(
                         modifier = Modifier.padding(innerPadding),
                         startService = {
-                            // TODO 서비스 실행 중이 아니면 실행시키기
+                            SavedRepository.setServiceRunning(this, true)
 
                             val intent = Intent(this, LockService::class.java)
-                            //ContextCompat
-                            startForegroundService(intent)
+                            ContextCompat.startForegroundService(applicationContext, intent)
 
                             ContextCompat.startForegroundService(
                                 this,
@@ -133,14 +134,13 @@ fun NotificationPermissionButton() {
 }
 
 /** 권한 보유 여부 체크 */
-fun Context.canDrawOverlaysCompat(): Boolean =
-    Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this)
+fun Context.canDrawOverlaysCompat(): Boolean = Settings.canDrawOverlays(this)
 
 /** 설정 화면 인텐트 */
 fun Context.overlayPermissionIntent(): Intent =
     Intent(
         Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-        Uri.parse("package:$packageName")
+        "package:$packageName".toUri()
     )
 
 @Composable
@@ -189,9 +189,7 @@ fun OverlayPermissionCard(
                 }
             } else {
                 Button(onClick = {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        launcher.launch(context.overlayPermissionIntent())
-                    }
+                    launcher.launch(context.overlayPermissionIntent())
                 }) {
                     Text("권한 설정 열기")
                 }

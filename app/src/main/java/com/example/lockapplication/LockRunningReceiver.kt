@@ -6,7 +6,7 @@ import android.content.Intent
 import android.util.Log
 import com.example.lockapplication.ui.LockActivity
 
-class LockReceiver: BroadcastReceiver() {
+class LockRunningReceiver: BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent?) {
         Log.d("LockReceiver", "onReceive: Screen Off detected, launching LockActivity")

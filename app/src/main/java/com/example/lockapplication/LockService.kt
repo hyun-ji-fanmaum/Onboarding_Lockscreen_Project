@@ -25,7 +25,7 @@ class LockService: Service() {
     private val CHANNEL_NAME = "Lock Service Channel"
 
     // 잠금화면 실행 시점 브로드캐스트 리시버 등록
-    private val lockReceiver: LockReceiver = LockReceiver()
+    private val lockRunningReceiver: LockRunningReceiver = LockRunningReceiver()
 
     override fun onCreate() {
         super.onCreate()
@@ -40,13 +40,13 @@ class LockService: Service() {
         // 리시버 등록
         if (Build.VERSION.SDK_INT >= 33) {
             registerReceiver(
-                lockReceiver,
+                lockRunningReceiver,
                 filter,
                 Context.RECEIVER_NOT_EXPORTED // TODO flags 찾아보기
             )
         } else {
             @Suppress("DEPRECATION")
-            registerReceiver(lockReceiver, filter)
+            registerReceiver(lockRunningReceiver, filter)
         }
 
 
@@ -72,7 +72,7 @@ class LockService: Service() {
         val foregroundServiceType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
             } else {
-                0
+                0 //ServiceInfo.FOREGROUND_SERVICE_TYPE_NONE
             }
 
         // 포그라운드 서비스로 시작
@@ -93,19 +93,17 @@ class LockService: Service() {
 
     private fun createNotificationChannel(context: Context) {
         // Android O 이상에서 필요
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val serviceChannel = NotificationChannel(
-                CHANNEL_ID,
-                CHANNEL_NAME,
-                // 서비스 중요도, 비교해보기
-                NotificationManager.IMPORTANCE_HIGH
-            )
+        val serviceChannel = NotificationChannel(
+            CHANNEL_ID,
+            CHANNEL_NAME,
+            // 서비스 중요도, 비교해보기
+            NotificationManager.IMPORTANCE_HIGH
+        )
 
-            // 서비스 채널을 생성하고 알림 매니저에 등록
-            getSystemService(NotificationManager::class.java)
-                ?.createNotificationChannel(serviceChannel)
+        // 서비스 채널을 생성하고 알림 매니저에 등록
+        getSystemService(NotificationManager::class.java)
+            ?.createNotificationChannel(serviceChannel)
 
-        }
     }
 
     // TODO test
@@ -129,7 +127,7 @@ class LockService: Service() {
 
     override fun onDestroy() {
         // 서비스가 종료될 때 브로드캐스트 리시버 해제
-        unregisterReceiver(lockReceiver)
+        unregisterReceiver(lockRunningReceiver)
 
         // test
         if (mThread != null){
@@ -141,4 +139,7 @@ class LockService: Service() {
     }
 }
 
+fun isMyFgsAliveByNotification(ctx: Context, notiId: Int): Boolean {
+    val nm = ctx.getSystemService(NotificationManager::class.java)
+    return nm.activeNotifications.any { it.id == notiId }
 }
