@@ -3,7 +3,7 @@ package com.example.lockapplication
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 
@@ -19,13 +19,11 @@ class LockWorker(
         if (isMyFgsAliveByNotification(context, LockService.SERVICE_ID)) {
             Log.d("LockWorker", "LockService is already running")
 
-            Toast.makeText(context, "LockService is already running", Toast.LENGTH_LONG).show()
         } else if (SavedRepository.isServiceRunning(context)) {
             Log.d("LockWorker", "LockService is not running, starting service")
 
             val serviceIntent = Intent(context, LockService::class.java)
-            context.startForegroundService(serviceIntent)
-            Toast.makeText(context, "LockService is not running, starting service", Toast.LENGTH_LONG).show()
+            ContextCompat.startForegroundService(applicationContext, serviceIntent)
         }
 
         return Result.success()

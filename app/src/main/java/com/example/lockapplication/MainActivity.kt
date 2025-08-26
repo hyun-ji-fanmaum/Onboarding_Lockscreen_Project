@@ -65,10 +65,12 @@ class MainActivity : ComponentActivity() {
                             val intent = Intent(this, LockService::class.java)
                             ContextCompat.startForegroundService(applicationContext, intent)
 
-                            ContextCompat.startForegroundService(
-                                this,
-                                intent
-                            )
+                            WorkManager.getInstance(applicationContext)
+                                .enqueueUniquePeriodicWork(
+                                    "lock-worker",
+                                    ExistingPeriodicWorkPolicy.KEEP,
+                                    repeatWorker
+                                )
                         }
                     )
                 }
