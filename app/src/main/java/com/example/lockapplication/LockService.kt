@@ -17,9 +17,12 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class LockService: Service() {
 
-    private val CHANNEL_ID = "ForegroundServiceChannel"
+    companion object {
+        private const val CHANNEL_ID = "ForegroundServiceChannel"
+        const val SERVICE_ID = 1001
+    }
+
     private val CHANNEL_NAME = "Lock Service Channel"
-    private val SERVICE_ID = 1001
 
     // 잠금화면 실행 시점 브로드캐스트 리시버 등록
     private val lockReceiver: LockReceiver = LockReceiver()
